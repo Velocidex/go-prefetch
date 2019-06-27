@@ -3,7 +3,7 @@ package prefetch
 import "fmt"
 
 var (
-	Prefetch_debug = true
+	Prefetch_debug = false
 )
 
 func Printf(fmt_str string, args ...interface{}) {
