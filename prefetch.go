@@ -64,6 +64,7 @@ func LoadPrefetch(reader io.ReaderAt) (*PrefetchInfo, error) {
 
 		self.LastRunTimes = append(self.LastRunTimes, file_info.LastRunTime().Time)
 		self.FilesAccessed = file_info.Filenames()
+		self.RunCount = file_info.RunCount()
 
 	case "Vista":
 		file_info := profile.FileInformationVista(
@@ -72,6 +73,7 @@ func LoadPrefetch(reader io.ReaderAt) (*PrefetchInfo, error) {
 
 		self.LastRunTimes = append(self.LastRunTimes, file_info.LastRunTime().Time)
 		self.FilesAccessed = file_info.Filenames()
+		self.RunCount = file_info.RunCount()
 
 	case "Win10", "Win8.1":
 		file_info := profile.FileInformationWin10(
@@ -86,6 +88,10 @@ func LoadPrefetch(reader io.ReaderAt) (*PrefetchInfo, error) {
 		}
 
 		self.FilesAccessed = file_info.Filenames()
+		self.RunCount = file_info.RunCount1()
+		if self.RunCount == 0 {
+			self.RunCount = file_info.RunCount2()
+		}
 	}
 
 	return self, nil
