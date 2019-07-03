@@ -9,4 +9,5 @@ type PrefetchInfo struct {
 	Version       string      `json:"Version"`
 	LastRunTimes  []time.Time `json:"LastRunTimes"`
 	FilesAccessed []string    `json:"FilesAccessed"`
+	RunCount      uint32      `json:"RunCount"`
 }
