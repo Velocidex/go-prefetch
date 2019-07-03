@@ -10,6 +10,23 @@
   version = "v1.1.1"
 
 [[projects]]
+  digest = "1:f99177e0b15cc4e9cad3fc8ad727429cf75b32693917515d0501b45ae11c30f6"
+  name = "github.com/jawher/mow.cli"
+  packages = [
+    ".",
+    "internal/container",
+    "internal/flow",
+    "internal/fsm",
+    "internal/lexer",
+    "internal/matcher",
+    "internal/parser",
+    "internal/values",
+  ]
+  pruneopts = "UT"
+  revision = "9b8ce431ec028691b79d71211c3848f1ad4078d7"
+  version = "v1.1.0"
+
+[[projects]]
   digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
@@ -54,6 +71,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/davecgh/go-spew/spew",
+    "github.com/jawher/mow.cli",
     "github.com/sebdah/goldie",
     "github.com/stretchr/testify/assert",
     "www.velocidex.com/golang/binparsergen",
