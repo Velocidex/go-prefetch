@@ -198,8 +198,6 @@ func PrefixCodeTreeDecodeSymbol(bstr *BitStream, root *PREFIX_CODE_NODE) (
 	return node.symbol, nil
 }
 
-func Break() {}
-
 func LZXpressHuffmanDecompressChunk(
 	in_idx int, // Current cursor in the input buffer.
 	input []byte, // Input buffer.
@@ -208,16 +206,16 @@ func LZXpressHuffmanDecompressChunk(
 	chunk_size int, // The required size of uncompressed buffer
 ) (int, int, error) {
 
+	// There must be at least this many bytes available to read.
+	if in_idx+256 > len(input) {
+		return 0, 0, io.EOF
+	}
+
 	root := PrefixCodeTreeRebuild(input[in_idx:])
 	bstr := NewBitStream(input, in_idx+256)
 
 	i := out_idx
 	for i < out_idx+chunk_size {
-
-		if i > 0x13792 {
-			Break()
-		}
-
 		symbol, err := PrefixCodeTreeDecodeSymbol(bstr, root)
 		if err != nil {
 			if err == io.EOF {
@@ -305,7 +303,7 @@ func LZXpressHuffmanDecompress(input []byte, output_size int) ([]byte, error) {
 		}
 
 		// We are done.
-		if out_idx >= len(output) || in_idx >= len(input)-1 {
+		if out_idx >= len(output) || in_idx >= len(input) {
 			break
 		}
 	}
