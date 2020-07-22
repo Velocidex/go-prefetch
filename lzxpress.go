@@ -97,9 +97,9 @@ Returns the index in treeNodes of the next node to be processed.
 */
 func PrefixCodeTreeAddLeaf(
 	treeNodes []PREFIX_CODE_NODE,
-	leafIndex int,
+	leafIndex uint32,
 	mask uint32,
-	bits uint32) int {
+	bits uint32) uint32 {
 
 	node := &treeNodes[0]
 	i := leafIndex + 1
@@ -126,13 +126,17 @@ func PrefixCodeTreeRebuild(input []byte) *PREFIX_CODE_NODE {
 	symbolInfo := make([]PREFIX_CODE_SYMBOL, 512)
 
 	for i := 0; i < 256; i++ {
+		value := input[i]
+
 		symbolInfo[2*i].id = uint32(2 * i)
 		symbolInfo[2*i].symbol = uint32(2 * i)
-		symbolInfo[2*i].length = uint32(input[i] & 15)
+		symbolInfo[2*i].length = uint32(value & 0xf)
+
+		value >>= 4
 
 		symbolInfo[2*i+1].id = uint32(2*i + 1)
 		symbolInfo[2*i+1].symbol = uint32(2*i + 1)
-		symbolInfo[2*i+1].length = uint32(input[i] >> 4)
+		symbolInfo[2*i+1].length = uint32(value & 0xf)
 	}
 
 	sort.SliceStable(symbolInfo, func(i, j int) bool {
@@ -150,7 +154,8 @@ func PrefixCodeTreeRebuild(input []byte) *PREFIX_CODE_NODE {
 	})
 
 	i := 0
-	for ; i < 512 && symbolInfo[i].length == 0; i++ {
+	for i < 512 && symbolInfo[i].length == 0 {
+		i++
 	}
 
 	mask := uint32(0)
@@ -159,7 +164,7 @@ func PrefixCodeTreeRebuild(input []byte) *PREFIX_CODE_NODE {
 	root := &treeNodes[0]
 	root.leaf = false
 
-	j := 1
+	j := uint32(1)
 	for ; i < 512; i++ {
 		treeNodes[j].id = uint32(j)
 		treeNodes[j].symbol = symbolInfo[i].symbol
@@ -191,8 +196,9 @@ func PrefixCodeTreeDecodeSymbol(bstr *BitStream, root *PREFIX_CODE_NODE) (
 	}
 
 	return node.symbol, nil
-
 }
+
+func Break() {}
 
 func LZXpressHuffmanDecompressChunk(
 	in_idx int, // Current cursor in the input buffer.
@@ -201,11 +207,17 @@ func LZXpressHuffmanDecompressChunk(
 	output []byte, // The output buffer.
 	chunk_size int, // The required size of uncompressed buffer
 ) (int, int, error) {
+
 	root := PrefixCodeTreeRebuild(input[in_idx:])
 	bstr := NewBitStream(input, in_idx+256)
 
 	i := out_idx
 	for i < out_idx+chunk_size {
+
+		if i > 0x13792 {
+			Break()
+		}
+
 		symbol, err := PrefixCodeTreeDecodeSymbol(bstr, root)
 		if err != nil {
 			if err == io.EOF {
@@ -220,10 +232,15 @@ func LZXpressHuffmanDecompressChunk(
 
 		} else {
 			symbol -= 256
-			length := symbol & 15
+			length := uint32(symbol & 15)
 			symbol >>= 4
 
-			offset := (1 << symbol) + bstr.Lookup(symbol)
+			offset := int32(0)
+			if symbol != 0 {
+				offset = int32(bstr.Lookup(symbol))
+			}
+			offset |= 1 << symbol
+			offset = -offset
 
 			if length == 15 {
 				length = uint32(bstr.source[bstr.index]) + 15
@@ -236,16 +253,19 @@ func LZXpressHuffmanDecompressChunk(
 				}
 			}
 
-			bstr.Skip(symbol)
+			err := bstr.Skip(symbol)
+			if err != nil {
+				return int(bstr.index), i, err
+			}
 
 			length = length + 3
 			for {
-				if i-int(offset) < 0 {
+				if i+int(offset) < 0 {
 					return int(bstr.index),
 						i, errors.New("Decompression error")
 				}
 
-				output[i] = output[i-int(offset)]
+				output[i] = output[i+int(offset)]
 				i++
 				length -= 1
 				if length == 0 {
@@ -285,7 +305,7 @@ func LZXpressHuffmanDecompress(input []byte, output_size int) ([]byte, error) {
 		}
 
 		// We are done.
-		if out_idx >= len(output) || in_idx >= len(input) {
+		if out_idx >= len(output) || in_idx >= len(input)-1 {
 			break
 		}
 	}

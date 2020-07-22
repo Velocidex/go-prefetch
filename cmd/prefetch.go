@@ -51,7 +51,7 @@ func main() {
 					binparsergen.FatalIfError(err, fmt.Sprintf("Open file: %v", err))
 				}
 
-				decompressed, err := prefetch.LZXpressHuffmanDecompress(
+				decompressed, err := prefetch.LZXpressHuffmanDecompressWithFallback(
 					data[:n], int(header.UncompressedSize()))
 				binparsergen.FatalIfError(err, fmt.Sprintf("Open file: %v", err))
 
