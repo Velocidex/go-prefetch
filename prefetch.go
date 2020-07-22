@@ -23,7 +23,7 @@ func LoadPrefetch(reader io.ReaderAt) (*PrefetchInfo, error) {
 			return nil, err
 		}
 
-		decompressed, err := LZXpressHuffmanDecompress(
+		decompressed, err := LZXpressHuffmanDecompressWithFallback(
 			data[:n], int(header.UncompressedSize()))
 		if err != nil {
 			return nil, err
