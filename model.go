@@ -1,6 +1,8 @@
 package prefetch
 
-import "time"
+import (
+	"time"
+)
 
 type PrefetchInfo struct {
 	Executable    string      `json:"Executable"`
