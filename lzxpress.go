@@ -190,6 +190,10 @@ func PrefixCodeTreeDecodeSymbol(bstr *BitStream, root *PREFIX_CODE_NODE) (
 		}
 
 		node = node.child[bit]
+		if node == nil {
+			return 0, errors.New("Corruption detected")
+		}
+
 		if node.leaf {
 			break
 		}
