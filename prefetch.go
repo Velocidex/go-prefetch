@@ -75,7 +75,7 @@ func LoadPrefetch(reader io.ReaderAt) (*PrefetchInfo, error) {
 		self.FilesAccessed = file_info.Filenames()
 		self.RunCount = file_info.RunCount()
 
-	case "Win10", "Win8.1":
+	case "Unknown", "Win11", "Win10", "Win8.1":
 		file_info := profile.FileInformationWin10(
 			scca_header.Reader,
 			scca_header.Offset+int64(scca_header.Size()))

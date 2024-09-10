@@ -10,7 +10,8 @@
         "17": "WinXP",
         "23": "Vista",
         "26": "Win8.1",
-        "30": "Win10"
+        "30": "Win10",
+        "31": "Win11"
       },
       "target": "unsigned long"
     }]],
