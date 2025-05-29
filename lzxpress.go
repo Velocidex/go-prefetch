@@ -11,6 +11,10 @@ import (
 	"sort"
 )
 
+var (
+	overflowError = errors.New("Overflow")
+)
+
 type BitStream struct {
 	// The input buffer.
 	source []byte
@@ -46,14 +50,18 @@ func (self *BitStream) Skip(n uint32) error {
 	return nil
 }
 
-func NewBitStream(in []byte, in_pos int) *BitStream {
+func NewBitStream(in []byte, in_pos int) (*BitStream, error) {
+	if in_pos+2 >= len(in) {
+		return nil, errors.New("Bitstream invalid")
+	}
+
 	return &BitStream{
 		source: in,
 		mask: uint32(binary.LittleEndian.Uint16(in[in_pos:]))<<16 +
 			uint32(binary.LittleEndian.Uint16(in[in_pos+2:])),
 		index: in_pos + 4,
 		bits:  32,
-	}
+	}, nil
 }
 
 type PREFIX_CODE_NODE struct {
@@ -80,10 +88,10 @@ func (self PREFIX_CODE_SYMBOL) String() string {
 }
 
 /*
-
 inout PREFIX_CODE_NODE treeNodes[1024]: A 1024 element
-    PREFIX_CODE_NODE array that contains the Huffman prefix code
-    tree's nodes.
+
+	PREFIX_CODE_NODE array that contains the Huffman prefix code
+	tree's nodes.
 
 in ULONG leafIndex: The index in treeNodes of the node to link into the tree.
 
@@ -91,7 +99,7 @@ in ULONG mask: The symbol's prefix code.
 
 in ULONG bits: The number of bits in the symbol's prefix code.
 
-Return Value
+# Return Value
 
 Returns the index in treeNodes of the next node to be processed.
 */
@@ -99,7 +107,11 @@ func PrefixCodeTreeAddLeaf(
 	treeNodes []PREFIX_CODE_NODE,
 	leafIndex uint32,
 	mask uint32,
-	bits uint32) uint32 {
+	bits uint32) (uint32, error) {
+
+	if len(treeNodes) == 0 {
+		return 0, overflowError
+	}
 
 	node := &treeNodes[0]
 	i := leafIndex + 1
@@ -108,6 +120,12 @@ func PrefixCodeTreeAddLeaf(
 	for bits > 1 {
 		bits = bits - 1
 		childIndex = (mask >> bits) & 1
+
+		if int(childIndex) >= len(node.child) ||
+			int(i) >= len(treeNodes) {
+			return 0, overflowError
+		}
+
 		if node.child[childIndex] == nil {
 			node.child[childIndex] = &treeNodes[i]
 			treeNodes[i].leaf = false
@@ -116,12 +134,17 @@ func PrefixCodeTreeAddLeaf(
 		node = node.child[childIndex]
 	}
 
+	if int(childIndex) > len(node.child) ||
+		int(leafIndex) > len(treeNodes) {
+		return 0, overflowError
+	}
+
 	node.child[mask&1] = &treeNodes[leafIndex]
 
-	return i
+	return i, nil
 }
 
-func PrefixCodeTreeRebuild(input []byte) *PREFIX_CODE_NODE {
+func PrefixCodeTreeRebuild(input []byte) (*PREFIX_CODE_NODE, error) {
 	treeNodes := make([]PREFIX_CODE_NODE, 1024)
 	symbolInfo := make([]PREFIX_CODE_SYMBOL, 512)
 
@@ -164,6 +187,7 @@ func PrefixCodeTreeRebuild(input []byte) *PREFIX_CODE_NODE {
 	root := &treeNodes[0]
 	root.leaf = false
 
+	var err error
 	j := uint32(1)
 	for ; i < 512; i++ {
 		treeNodes[j].id = uint32(j)
@@ -171,11 +195,14 @@ func PrefixCodeTreeRebuild(input []byte) *PREFIX_CODE_NODE {
 		treeNodes[j].leaf = true
 		mask = mask << (symbolInfo[i].length - bits)
 		bits = symbolInfo[i].length
-		j = PrefixCodeTreeAddLeaf(treeNodes, j, mask, bits)
+		j, err = PrefixCodeTreeAddLeaf(treeNodes, j, mask, bits)
+		if err != nil {
+			return nil, err
+		}
 		mask++
 	}
 
-	return root
+	return root, nil
 }
 
 func PrefixCodeTreeDecodeSymbol(bstr *BitStream, root *PREFIX_CODE_NODE) (
@@ -215,8 +242,14 @@ func LZXpressHuffmanDecompressChunk(
 		return 0, 0, io.EOF
 	}
 
-	root := PrefixCodeTreeRebuild(input[in_idx:])
-	bstr := NewBitStream(input, in_idx+256)
+	root, err := PrefixCodeTreeRebuild(input[in_idx:])
+	if err != nil {
+		return 0, 0, err
+	}
+	bstr, err := NewBitStream(input, in_idx+256)
+	if err != nil {
+		return 0, 0, err
+	}
 
 	i := out_idx
 	for i < out_idx+chunk_size {
@@ -267,7 +300,13 @@ func LZXpressHuffmanDecompressChunk(
 						i, errors.New("Decompression error")
 				}
 
-				output[i] = output[i+int(offset)]
+				srcI := i + int(offset)
+				if srcI >= len(output) {
+					return int(bstr.index),
+						i, errors.New("Decompression error - exceeded chunk length")
+				}
+
+				output[i] = output[srcI]
 				i++
 				length -= 1
 				if length == 0 {
