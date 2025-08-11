@@ -5,7 +5,10 @@ import (
 )
 
 type PrefetchInfo struct {
-	Executable    string      `json:"Executable"`
+	Executable string `json:"Executable"`
+	// Path contains a kernel path to the executable.
+	// For Windows Apps, it apparently contains the app name instead.
+	Path          string      `json:"Path"`
 	FileSize      uint32      `json:"FileSize"`
 	Hash          string      `json:"Hash"`
 	Version       string      `json:"Version"`

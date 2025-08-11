@@ -37,7 +37,9 @@
     }]],
 
     "RunCount1": [124, ["unsigned long"]],
-    "RunCount2": [116, ["unsigned long"]]
+    "RunCount2": [116, ["unsigned long"]],
+    "ExecutablePathOffset": [128, ["unsigned long"]],
+    "ExecutablePathSize": [132, ["unsigned long"]]
   }],
 
   "FileMetricsEntryV30": [32, {

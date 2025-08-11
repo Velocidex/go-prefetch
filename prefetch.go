@@ -92,6 +92,10 @@ func LoadPrefetch(reader io.ReaderAt) (*PrefetchInfo, error) {
 		if self.RunCount == 0 {
 			self.RunCount = file_info.RunCount2()
 		}
+		switch self.Version {
+		case "Win10", "Win11", "Unknown":
+			self.Path = file_info.ExecutablePath()
+		}
 	}
 
 	return self, nil

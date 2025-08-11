@@ -61,6 +61,8 @@ type PrefetchProfile struct {
     Off_FileInformationWin10_LastRunTimes int64
     Off_FileInformationWin10_RunCount1 int64
     Off_FileInformationWin10_RunCount2 int64
+    Off_FileInformationWin10_ExecutablePathOffset int64
+    Off_FileInformationWin10_ExecutablePathSize int64
     Off_FileInformationXP_FileMetricsOffset int64
     Off_FileInformationXP_NumberOfFileMetrics int64
     Off_FileInformationXP_TraceChainsArrayOffset int64
@@ -88,7 +90,7 @@ type PrefetchProfile struct {
 
 func NewPrefetchProfile() *PrefetchProfile {
     // Specific offsets can be tweaked to cater for slight version mismatches.
-    self := &PrefetchProfile{0,4,8,12,16,20,24,28,32,44,68,0,4,8,12,16,20,24,28,32,44,124,116,0,4,8,12,16,20,24,28,32,36,60,8,12,12,16,24,0,4,0,4,12,16,76}
+    self := &PrefetchProfile{0,4,8,12,16,20,24,28,32,44,68,0,4,8,12,16,20,24,28,32,44,124,116,128,132,0,4,8,12,16,20,24,28,32,36,60,8,12,12,16,24,0,4,0,4,12,16,76}
     return self
 }
 
@@ -247,6 +249,14 @@ func (self *FileInformationWin10) RunCount1() uint32 {
 func (self *FileInformationWin10) RunCount2() uint32 {
    return ParseUint32(self.Reader, self.Profile.Off_FileInformationWin10_RunCount2 + self.Offset)
 }
+
+func (self *FileInformationWin10) ExecutablePathOffset() uint32 {
+   return ParseUint32(self.Reader, self.Profile.Off_FileInformationWin10_ExecutablePathOffset + self.Offset)
+}
+
+func (self *FileInformationWin10) ExecutablePathSize() uint32 {
+   return ParseUint32(self.Reader, self.Profile.Off_FileInformationWin10_ExecutablePathSize + self.Offset)
+}
 func (self *FileInformationWin10) DebugString() string {
     result := fmt.Sprintf("struct FileInformationWin10 @ %#x:\n", self.Offset)
     result += fmt.Sprintf("  FileMetricsOffset: %#0x\n", self.FileMetricsOffset())
@@ -260,6 +270,8 @@ func (self *FileInformationWin10) DebugString() string {
     result += fmt.Sprintf("  VolumesInformationSize: %#0x\n", self.VolumesInformationSize())
     result += fmt.Sprintf("  RunCount1: %#0x\n", self.RunCount1())
     result += fmt.Sprintf("  RunCount2: %#0x\n", self.RunCount2())
+    result += fmt.Sprintf("  ExecutablePathOffset: %#0x\n", self.ExecutablePathOffset())
+    result += fmt.Sprintf("  ExecutablePathSize: %#0x\n", self.ExecutablePathSize())
     return result
 }
 
@@ -482,6 +494,12 @@ func (self Enumeration) DebugString() string {
 
 
 func ParseArray_WinFileTime(profile *PrefetchProfile, reader io.ReaderAt, offset int64, count int) []*WinFileTime {
+    if count <= 0 {
+      count = 0
+    }
+    if count > 4000000 {
+       count = 4000000
+    }
     result := make([]*WinFileTime, 0, count)
     for i:=0; i<count; i++ {
       value := profile.WinFileTime(reader, offset)
@@ -526,6 +544,13 @@ func ParseTerminatedString(reader io.ReaderAt, offset int64) string {
 }
 
 func ParseString(reader io.ReaderAt, offset int64, length int64) string {
+    if length <= 0 {
+      length = 0
+    }
+    if length > 4000000 {
+       length = 4000000
+    }
+
    data := make([]byte, length)
    n, err := reader.ReadAt(data, offset)
    if err != nil && err != io.EOF {
@@ -554,6 +579,13 @@ func ParseTerminatedUTF16String(reader io.ReaderAt, offset int64) string {
 }
 
 func ParseUTF16String(reader io.ReaderAt, offset int64, length int64) string {
+    if length <= 0 {
+      length = 0
+    }
+    if length > 4000000 {
+       length = 4000000
+    }
+
    data := make([]byte, length)
    n, err := reader.ReadAt(data, offset)
    if err != nil && err != io.EOF {
