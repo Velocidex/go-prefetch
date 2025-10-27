@@ -7,9 +7,17 @@ import (
 	"os"
 
 	cli "github.com/jawher/mow.cli"
-	"www.velocidex.com/golang/binparsergen"
 	"www.velocidex.com/golang/go-prefetch"
 )
+
+func FatalIfError(err error, format string, args ...interface{}) {
+	if err != nil {
+		format += ": %v\n"
+		args = append(args, err)
+		fmt.Printf(format, args...)
+		os.Exit(1)
+	}
+}
 
 func main() {
 	// create an app
@@ -23,10 +31,10 @@ func main() {
 		cmd.Action = func() {
 			for _, arg := range *file {
 				fd, err := os.Open(arg)
-				binparsergen.FatalIfError(err, fmt.Sprintf("Open file: %v", err))
+				FatalIfError(err, fmt.Sprintf("Open file: %v", err))
 
 				prefetch_obj, err := prefetch.LoadPrefetch(fd)
-				binparsergen.FatalIfError(err, fmt.Sprintf("Parsing Error: %v", err))
+				FatalIfError(err, fmt.Sprintf("Parsing Error: %v", err))
 
 				serialized_content, _ := json.MarshalIndent(prefetch_obj, " ", " ")
 				fmt.Println(string(serialized_content))
@@ -40,7 +48,7 @@ func main() {
 		cmd.Action = func() {
 			profile := prefetch.NewPrefetchProfile()
 			reader, err := os.Open(*file)
-			binparsergen.FatalIfError(err, fmt.Sprintf("OpenFile: %v", err))
+			FatalIfError(err, fmt.Sprintf("OpenFile: %v", err))
 
 			header := profile.MAMHeader(reader, 0)
 			if header.Signature() == "MAM\x04" {
@@ -48,12 +56,12 @@ func main() {
 				data := make([]byte, header.UncompressedSize())
 				n, err := reader.ReadAt(data, int64(header.Size()))
 				if err != io.EOF {
-					binparsergen.FatalIfError(err, fmt.Sprintf("Open file: %v", err))
+					FatalIfError(err, fmt.Sprintf("Open file: %v", err))
 				}
 
 				decompressed, err := prefetch.LZXpressHuffmanDecompressWithFallback(
 					data[:n], int(header.UncompressedSize()))
-				binparsergen.FatalIfError(err, fmt.Sprintf("Open file: %v", err))
+				FatalIfError(err, fmt.Sprintf("Open file: %v", err))
 
 				os.Stdout.Write(decompressed)
 			}
