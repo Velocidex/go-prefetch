@@ -301,7 +301,7 @@ func LZXpressHuffmanDecompressChunk(
 				}
 
 				srcI := i + int(offset)
-				if srcI >= len(output) {
+				if srcI >= len(output) || i >= len(output) {
 					return int(bstr.index),
 						i, errors.New("Decompression error - exceeded chunk length")
 				}
