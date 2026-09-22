@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package prefetch
@@ -16,8 +17,11 @@ var (
 )
 
 func LZXpressHuffmanDecompressWithFallback(input []byte, output_size int) ([]byte, error) {
+	if len(input) == 0 || output_size == 0 {
+		return nil, nil
+	}
 
-	// For older windows, we fall back to the build in decompression.
+	// For older windows, we fall back to the built in decompression.
 	err := RtlDecompressBufferEx.Find()
 	if err != nil {
 		return LZXpressHuffmanDecompress(input, output_size)
